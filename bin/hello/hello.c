@@ -88,18 +88,15 @@ int main(int argc, char **argv)
 	if (argc == 2)
 		delay = atoi(argv[1]);
 
-	fprintf(stderr, "Hello, World!\n");
-
 	sleep(delay);
 
-	fprintf(stderr, "Tracing... ");
+	fprintf(stdout, "Tracing... ");
 	for (i = 0; i < 10000; i++) {
 		netint = htonl(i);
 		tracepoint(ust_tests_hello, tptest, i, netint, values,
 			   text, strlen(text), dbl, flt, mybool);
-		fprintf(stderr, " done.\n");
 		//sleep(1);
 	}
-	fprintf(stderr, " done.\n");
+	fprintf(stdout, " done.\n");
 	return 0;
 }
