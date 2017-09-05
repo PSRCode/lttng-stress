@@ -27,7 +27,7 @@ CONSUMERD_MATCH=".*lttng-consumerd.*"
 # Make sure to kill all background job if any
 function cleanup ()
 {
-	pids="$(pgrep $SESSIOND_MATCH) $(pgrep $RUNAS_MATCH)"
+	pids="$(pgrep $SESSIOND_MATCH) $(pgrep $RUNAS_MATCH) $(pgrep memcheck-amd64)"
 	kill -9 $STRESS_PID $pids 2> /dev/null
 	exit 0
 }
@@ -60,11 +60,11 @@ function app_generator()
 
 function stop_lttng_sessiond ()
 {
-	local pids="$(pgrep $SESSIOND_MATCH) $(pgrep $RUNAS_MATCH)"
+	local pids="$(pgrep $SESSIOND_MATCH) $(pgrep $RUNAS_MATCH) $(pgrep memcheck-amd64)"
 	local out=1
 	kill $pids
 	while [ -n "$out" ]; do
-		out=$(pgrep ${SESSIOND_MATCH})
+		out="$(pgrep ${SESSIOND_MATCH})$(pgrep memcheck-amd64)"
 		sleep 0.5
 	done
 	out=1
@@ -78,20 +78,23 @@ if [[ ! -e ${HELLO_PATH} ]]; then
 	echo "Error: Make sure to build test application from bin/"
 fi
 
-for (( i = 0; i < 100; i++ )); do
+for (( i = 0; i < 150; i++ )); do
 	app_generator &
+	sleep 0.01
 done
 
 stress --cpu 10 &
 STRESS_PID=$!
 
 for (( i = 0; i < 10000; i++ )); do
+	#eval valgrind --leak-check=full --track-fds=yes --trace-children=yes --log-file=/home/jonathan/lttng/lttng-stress/scenario/log/%p.report lttng-sessiond --background
 	eval lttng-sessiond --background
 	lttng create testsession
-	lttng enable-channel -u --subbuf-size $(getconf PAGE_SIZE) mychannel
+	lttng enable-channel -u --subbuf-size "$(getconf PAGE_SIZE)" mychannel
 	lttng enable-event -c mychannel -u -a
 	lttng start
 	stop_lttng_sessiond
+	reset
 	echo "------------------------------------------------------------------------------------"
 done
 
